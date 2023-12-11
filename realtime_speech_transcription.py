@@ -35,34 +35,37 @@ def listen_for_speech(threshold=THRESHOLD):
 
     started = False
 
-    while True:
-        cur_data = stream.read(CHUNK)
-        slid_win.append(abs(audioop.avg(cur_data, 4)))
+    try:
+        while True:
+            cur_data = stream.read(CHUNK)
+            slid_win.append(abs(audioop.avg(cur_data, 4)))
 
-        if sum([x > threshold for x in slid_win]) > 0:
-            if not started:
-                print("Starting recording")
-                started = True
-            audio2send.append(cur_data)
-        elif started:
-            print("Finished recording, processing chunk")
-            filename = save_speech(list(prev_audio) + audio2send, p)
-            transcribed_text = send_audio_to_stt(filename)
-            audio2send = []
-            prev_audio = deque(maxlen=int(PREV_AUDIO * rel))  # reset the buffer
-            started = False
-            slid_win = deque(maxlen=int(SILENCE_LIMIT * rel))
+            if sum([x > threshold for x in slid_win]) > 0:
+                if not started:
+                    print("Starting recording")
+                    started = True
+                audio2send.append(cur_data)
+            elif started:
+                print("Finished recording, processing chunk")
+                filename = save_speech(list(prev_audio) + audio2send, p)
+                transcribed_text = send_audio_to_stt(filename)
+                audio2send = []
+                prev_audio = deque(maxlen=int(PREV_AUDIO * rel))  # reset the buffer
+                started = False
+                slid_win = deque(maxlen=int(SILENCE_LIMIT * rel))
 
-            # Send transcribed text to TTS container
-            tts_audio_data = send_text_to_tts(transcribed_text)
-            # You can save or play the synthesized audio as needed
-            save_tts_audio(tts_audio_data)
-        else:
-            prev_audio.append(cur_data)
-
-    print("* Done recording")
-    stream.close()
-    p.terminate()
+                # Send transcribed text to TTS container
+                tts_audio_data = send_text_to_tts(transcribed_text)
+                # You can save or play the synthesized audio as needed
+                save_tts_audio(tts_audio_data)
+            else:
+                prev_audio.append(cur_data)
+    except KeyboardInterrupt:
+        print("\n* Stopping recording due to KeyboardInterrupt.")
+    finally:
+        stream.stop_stream()
+        stream.close()
+        p.terminate()
 
 def save_speech(data, p):
     """
