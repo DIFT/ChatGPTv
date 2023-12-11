@@ -68,6 +68,7 @@ def save_speech(data, p):
     Save the recorded speech data to a file.
     """
     filename = 'output_' + str(int(time.time())) + '.wav'
+    print("Saving .wav file to:", filename)  # Debugging statement to print filename
     wf = wave.open(filename, 'wb')
     wf.setnchannels(CHANNELS)
     wf.setsampwidth(p.get_sample_size(FORMAT))
@@ -103,6 +104,7 @@ def save_tts_audio(data):
     Save the synthesized audio data to a file.
     """
     filename = 'output_tts.wav'
+    print("Saving TTS .wav file to:", filename)  # Debugging statement to print filename
     with open(filename, 'wb') as tts_file:
         tts_file.write(data)
 
