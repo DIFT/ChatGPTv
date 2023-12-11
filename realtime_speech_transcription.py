@@ -14,9 +14,13 @@ THRESHOLD = 2000  # audio level threshold for starting recording
 SILENCE_LIMIT = 1  # silence time to consider end of a chunk
 PREV_AUDIO = 0.5  # seconds of audio kept before start of a chunk
 
+# URLs for Speech to Text (STT) and Text to Speech (TTS) containers
+STT_URL = 'http://localhost:5001'
+TTS_URL = 'http://localhost:5002'
+
 def listen_for_speech(threshold=THRESHOLD):
     """
-    Listen to the microphone and send chunks of speech to the speech-to-text service.
+    Listen to the microphone and send chunks of speech to the STT service.
     """
     p = pyaudio.PyAudio()
     stream = p.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
@@ -42,11 +46,16 @@ def listen_for_speech(threshold=THRESHOLD):
         elif started:
             print("Finished recording, processing chunk")
             filename = save_speech(list(prev_audio) + audio2send, p)
-            send_audio_to_stt(filename)
+            transcribed_text = send_audio_to_stt(filename)
             audio2send = []
             prev_audio = deque(maxlen=int(PREV_AUDIO * rel))  # reset the buffer
             started = False
             slid_win = deque(maxlen=int(SILENCE_LIMIT * rel))
+
+            # Send transcribed text to TTS container
+            tts_audio_data = send_text_to_tts(transcribed_text)
+            # You can save or play the synthesized audio as needed
+            save_tts_audio(tts_audio_data)
         else:
             prev_audio.append(cur_data)
 
@@ -69,14 +78,32 @@ def save_speech(data, p):
 
 def send_audio_to_stt(filename):
     """
-    Send the audio file to the Speech to Text service and print the response.
+    Send the audio file to the STT service and return the transcribed text.
     """
-    url = 'http://localhost:5001/speech-to-text'
     headers = {'Content-Type': 'audio/wav'}
     with open(filename, 'rb') as f:
         audio_data = f.read()
-    response = requests.post(url, data=audio_data, headers=headers)
+    response = requests.post(STT_URL, data=audio_data, headers=headers)
+    transcribed_text = response.text.strip()
     print("Transcription: ")
-    print(response.text)
+    print(transcribed_text)
+    return transcribed_text
+
+def send_text_to_tts(text):
+    """
+    Send the transcribed text to the TTS service and return the synthesized audio data.
+    """
+    headers = {'Content-Type': 'text/plain'}
+    response = requests.post(TTS_URL, data=text, headers=headers)
+    tts_audio_data = response.content
+    return tts_audio_data
+
+def save_tts_audio(data):
+    """
+    Save the synthesized audio data to a file.
+    """
+    filename = 'output_tts.wav'
+    with open(filename, 'wb') as tts_file:
+        tts_file.write(data)
 
 listen_for_speech()  # Uncomment to start listening
