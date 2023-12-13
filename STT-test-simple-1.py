@@ -2,6 +2,7 @@ import azure.cognitiveservices.speech as speechsdk
 import requests
 import json
 import os
+import subprocess
 
 # Retrieve API keys and regions from environment variables
 stt_speech_key = os.getenv('STT_SPEECH_KEY')
@@ -49,20 +50,24 @@ if result.reason == speechsdk.ResultReason.RecognizedSpeech:
         
         # Initialize the speech configuration for Text-to-Speech
         speech_config_tts = speechsdk.SpeechConfig(subscription=tts_speech_key, region=tts_service_region)
-        
-        # Initialize the synthesizer for Text-to-Speech
-        tts_synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config_tts)
-        
-        # Synthesize ChatGPT's response into speech
-        result = tts_synthesizer.speak_text_async(chatgpt_response).get()
-        
-        if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
-            # Save the synthesized audio as a WAV file
-            with open('chatgpt_response.wav', 'wb') as audio_file:
-                audio_file.write(result.audio_data)
-            print("ChatGPT response saved as chatgpt_response.wav")
-        else:
-            print("Text-to-Speech synthesis failed with unexpected reason: {}".format(result.reason))
+
+        # Updated SSML string with facial expression viseme
+        ssml_string = f"""
+<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xmlns:mstts='http://www.w3.org/2001/mstts' xml:lang='en-US'>
+  <voice name='en-US-JennyNeural'>
+    <mstts:viseme type='FacialExpression'/>
+    {chatgpt_response}
+  </voice>
+</speak>
+"""
+
+        # Send the SSML data to your Unity project via named pipe
+        try:
+            with open('my_pipe', 'w') as pipe:
+                pipe.write(ssml_string)
+            print("SSML data sent to Unity for facial expression animation.")
+        except Exception as e:
+            print(f"Failed to send SSML data to Unity via named pipe: {e}")
     else:
         print("OpenAI API request failed.")
 else:
