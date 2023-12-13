@@ -1,17 +1,14 @@
 import azure.cognitiveservices.speech as speechsdk
 import requests
 import json
+import os
 
-# Azure Speech API key and region for Speech-to-Text
-stt_speech_key = '9ee891ae0ff249c680e9de43f4ac1f4b'
-service_region = 'eastus'
-
-# Azure Speech API key and region for Text-to-Speech
-tts_speech_key = 'bdc956edb9c246cd9b242ae6b45b12c9'
-tts_service_region = 'eastus'
-
-# OpenAI API key
-openai_api_key = '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'
+# Retrieve API keys and regions from environment variables
+stt_speech_key = os.getenv('STT_SPEECH_KEY')
+service_region = os.getenv('SERVICE_REGION')
+tts_speech_key = os.getenv('TTS_SPEECH_KEY')
+tts_service_region = os.getenv('TTS_SERVICE_REGION')
+openai_api_key = os.getenv('OPENAI_API_KEY')
 
 # Initialize the speech configuration for Speech-to-Text
 speech_config_stt = speechsdk.SpeechConfig(subscription=stt_speech_key, region=service_region)
